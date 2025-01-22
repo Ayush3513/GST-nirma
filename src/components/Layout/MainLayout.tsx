@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { ChatContainer } from "../chat/ChatContainer";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       <div className="hidden lg:block">
         <Sidebar />
       </div>
-      
+
       {/* Mobile Sidebar */}
       <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72">
@@ -28,6 +29,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <Header toggleMobileSidebar={() => setIsMobileSidebarOpen(true)} />
         <main className="flex-1 overflow-x-hidden p-4 lg:p-6">
           {children}
+          <ChatContainer />
         </main>
       </div>
     </div>
