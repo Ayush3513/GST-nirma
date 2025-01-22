@@ -1,10 +1,10 @@
-import { Upload } from "lucide-react";
+import { LoaderCircleIcon, Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useCallback, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import MainLayout from "@/components/Layout/MainLayout";
-import { supabase } from "@/integrations/supabase/client";// Ensure you have a Supabase client set up
+import { supabase } from "@/integrations/supabase/client"; // Ensure you have a Supabase client set up
 import { Invoice } from "@/integrations/supabase/types"; // Implied import for the Invoice type
 import { useNavigate } from "react-router-dom";
 import { checkITCEligibility } from "@/service/ITCeligibilty";
@@ -16,6 +16,7 @@ export default function InvoiceUpload() {
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const accessToken = "Token 7d0ed7d071f75355b9d289e1b9969cdd";
 
   // Function to upload the file and process it using Mindee API
   const handleFileUpload = useCallback(
@@ -28,12 +29,12 @@ export default function InvoiceUpload() {
 
         // Step 1: Make the API request to upload the document
         const response = await fetch(
-          "https://api.mindee.net/v1/products/gstnnnnnnn/invoice_calc/v1/predict_async", // Correct URL for async prediction
+          "https://api.mindee.net/v1/products/nirma/invoicy/v1/predict_async", // Correct URL for async prediction
           {
             method: "POST",
             body: formData,
             headers: {
-              Authorization: "Token 1c159ed6727d707620f8ffd39456a7d5", // Replace with your actual API key
+              Authorization: accessToken, // Replace with your actual API key
             },
           }
         );
@@ -62,8 +63,6 @@ export default function InvoiceUpload() {
             error instanceof Error ? error.message : "Please try again later.",
           variant: "destructive",
         });
-      } finally {
-        setIsUploading(false);
       }
     },
     [toast]
@@ -76,11 +75,11 @@ export default function InvoiceUpload() {
 
       const fetchJobStatus = async () => {
         const response = await fetch(
-          `https://api.mindee.net/v1/products/gstnnnnnnn/invoice_calc/v1/documents/queue/${jobId}`,
+          `https://api.mindee.net/v1/products/nirma/invoicy/v1/documents/queue/${jobId}`,
           {
             method: "GET",
             headers: {
-              Authorization: "Token 1c159ed6727d707620f8ffd39456a7d5", // Replace with your actual API key
+              Authorization: accessToken, // Replace with your actual API key
             },
           }
         );
@@ -119,75 +118,78 @@ export default function InvoiceUpload() {
   };
 
   // Function to retrieve the prediction data using job ID
- const fetchPredictionData = async (jobId: string) => {
-   const maxRetries = 5;
-   let retryCount = 0;
+  const fetchPredictionData = async (jobId: string) => {
+    const maxRetries = 5;
+    let retryCount = 0;
 
-   const fetchWithRetry = async () => {
-     try {
-       const response = await fetch(
-         `https://api.mindee.net/v1/products/gstnnnnnnn/invoice_calc/v1/documents/queue/${jobId}`,
-         {
-           method: "GET",
-           headers: {
-             Authorization: "Token 1c159ed6727d707620f8ffd39456a7d5", // Replace with your actual API key
-           },
-         }
-       );
+    const fetchWithRetry = async () => {
+      try {
+        const response = await fetch(
+          `https://api.mindee.net/v1/products/nirma/invoicy/v1/documents/queue/${jobId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: accessToken, // Replace with your actual API key
+            },
+          }
+        );
 
-       if (!response.ok) {
-         if (response.status === 429 && retryCount < maxRetries) {
-           // Apply backoff if rate limit is exceeded
-           retryCount++;
-           const backoffTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
-           console.log(`Rate limit hit. Retrying in ${backoffTime / 1000}s...`);
-           setTimeout(fetchWithRetry, backoffTime);
-           return;
-         }
-         throw new Error(`HTTP error! Status: ${response.status}`);
-       }
+        if (!response.ok) {
+          if (response.status === 429 && retryCount < maxRetries) {
+            // Apply backoff if rate limit is exceeded
+            retryCount++;
+            const backoffTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.log(
+              `Rate limit hit. Retrying in ${backoffTime / 1000}s...`
+            );
+            setTimeout(fetchWithRetry, backoffTime);
+            return;
+          }
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
 
-       const data = await response.json();
-       console.log("Prediction Data:", data);
+        const data = await response.json();
+        console.log("Prediction Data:", data);
 
-       const importantData = data.document.inference.prediction;
+        const importantData = data.document.inference.prediction;
 
-       if (importantData) {
-         setInvoiceData({
-           invoiceNumber: importantData.invoicenumber?.value || "",
-           invoiceDate: importantData.invoice_date?.value || "",
-           buyerGstin: importantData.buyergstin?.value || "",
-           supplierGstin: importantData.suppliergstin?.value || "",
-           taxAmount: {
-             cgst: parseFloat(importantData.taxamount?.cgst) || 0,
-             sgst: parseFloat(importantData.taxamount?.sgst) || 0,
-             igst: parseFloat(importantData.taxamount?.igst) || 0,
-             totalAmount: parseFloat(importantData.taxamount?.total_amount) || 0,
-           },
-         });
+        if (importantData) {
+          setInvoiceData({
+            invoiceNumber: importantData.invoicenumber?.value || "",
+            invoiceDate: importantData.invoice_date?.value || "",
+            buyerGstin: importantData.buyergstin?.value || "",
+            supplierGstin: importantData.suppliergstin?.value || "",
+            taxAmount: {
+              cgst: parseFloat(importantData.taxamount?.cgst) || 0,
+              sgst: parseFloat(importantData.taxamount?.sgst) || 0,
+              igst: parseFloat(importantData.taxamount?.igst) || 0,
+              totalAmount:
+                parseFloat(importantData.taxamount?.total_amount) || 0,
+            },
+          });
+          setIsUploading(false);
+          toast({
+            title: "Invoice processed successfully",
+            description: `Extracted data for invoice: ${
+              importantData.invoicenumber?.value || "Unknown"
+            }`,
+          });
+        } else {
+          console.log("Prediction data is still empty or incomplete.");
+        }
+      } catch (error) {
+        console.error("Error fetching prediction data:", error);
+        toast({
+          title: "Error fetching prediction",
+          description:
+            error instanceof Error ? error.message : "Please try again later.",
+          variant: "destructive",
+        });
+      }
+    };
 
-         toast({
-           title: "Invoice processed successfully",
-           description: `Extracted data for invoice: ${
-             importantData.invoicenumber?.value || "Unknown"
-           }`,
-         });
-       } else {
-         console.log("Prediction data is still empty or incomplete.");
-       }
-     } catch (error) {
-       console.error("Error fetching prediction data:", error);
-       toast({
-         title: "Error fetching prediction",
-         description:
-           error instanceof Error ? error.message : "Please try again later.",
-         variant: "destructive",
-       });
-     }
-   };
-
-   fetchWithRetry();
- };
+    fetchWithRetry();
+  };
 
   // Handle file drop
   const handleDrop = useCallback(
@@ -212,11 +214,11 @@ export default function InvoiceUpload() {
 
   const handleSubmit = async () => {
     if (!invoiceData) return;
-  
+
     try {
       // Step 2: First save invoice to database
       const { data: savedInvoice, error: insertError } = await supabase
-        .from('invoices')
+        .from("invoices")
         .insert([
           {
             id: crypto.randomUUID(),
@@ -228,58 +230,58 @@ export default function InvoiceUpload() {
             sgst: invoiceData.taxAmount.sgst || 0,
             igst: invoiceData.taxAmount.igst || 0,
             total_amount: invoiceData.taxAmount.totalAmount || 0,
-            reconciliation_status: 'PENDING',
-            itc_eligible: false
-          }
+            reconciliation_status: "PENDING",
+            itc_eligible: false,
+          },
         ])
         .select()
         .single();
-  
+
       if (insertError) throw insertError;
-      if (!savedInvoice) throw new Error('Failed to save invoice');
+      if (!savedInvoice) throw new Error("Failed to save invoice");
 
-
-  
       toast({
         title: "Invoice saved successfully",
         description: "Now checking eligibility and reconciliation...",
       });
-  
+
       // Step 3: Check ITC eligibility
       toast({ title: "Checking ITC eligibility..." });
       const eligibilityResult = await checkITCEligibility(savedInvoice);
-  
+
       // Step 4: Perform reconciliation
       toast({ title: "Performing reconciliation..." });
       const reconciliationStatus = await reconcileInvoice(savedInvoice);
-  
+
       // Step 5: Show final results
       toast({
         title: "Process completed",
-        description: 
+        description:
           `Status: ${eligibilityResult.verificationStatus}\n` +
           `Reconciliation: ${reconciliationStatus}\n` +
-          `ITC Eligible: ${eligibilityResult.isEligible ? 'Yes' : 'No'}\n` +
+          `ITC Eligible: ${eligibilityResult.isEligible ? "Yes" : "No"}\n` +
           `Amount: ₹${eligibilityResult.eligibleAmount}`,
         variant: eligibilityResult.isEligible ? "default" : "destructive",
       });
-      queryClient.invalidateQueries(['invoices']);
-
+      queryClient.invalidateQueries(["invoices"]);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       toast({
         title: "Error processing invoice",
-        description: error instanceof Error ? error.message : "Please try again",
+        description:
+          error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     }
   };
-  
 
   return (
     <MainLayout>
+      {isUploading && <Loader />}
       <Card className="p-6 shadow-lg rounded-lg border border-gray-200">
-        <h1 className="text-2xl font-semibold mb-4 text-center">Upload Your Invoice</h1>
+        <h1 className="text-2xl font-semibold mb-4 text-center">
+          Upload Your Invoice
+        </h1>
         <div
           className={`border-2 border-dashed border-gray-300 rounded-lg p-12 text-center transition-all duration-300 ${
             isUploading ? "opacity-50" : "hover:border-primary-500"
@@ -326,75 +328,103 @@ export default function InvoiceUpload() {
           <h2 className="text-xl font-semibold mb-4">Invoice Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Invoice Number</label>
+              <label className="block text-sm font-medium mb-1">
+                Invoice Number
+              </label>
               <input
                 type="text"
                 value={invoiceData.invoiceNumber}
-                onChange={(e) => setInvoiceData({ ...invoiceData, invoiceNumber: e.target.value })}
+                onChange={(e) =>
+                  setInvoiceData({
+                    ...invoiceData,
+                    invoiceNumber: e.target.value,
+                  })
+                }
                 className="border rounded p-2 w-full"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Invoice Date</label>
+              <label className="block text-sm font-medium mb-1">
+                Invoice Date
+              </label>
               <input
                 type="date"
                 value={invoiceData.invoiceDate}
-                onChange={(e) => setInvoiceData({ ...invoiceData, invoiceDate: e.target.value })}
+                onChange={(e) =>
+                  setInvoiceData({
+                    ...invoiceData,
+                    invoiceDate: e.target.value,
+                  })
+                }
                 className="border rounded p-2 w-full"
               />
             </div>
             <div>
-  <label className="block text-sm font-medium mb-1">
-    Buyer GSTIN
-    {invoiceData.buyerGstin && (
-      <span className="text-red-500 text-xs ml-2">Invalid GSTIN format</span>
-    )}
-  </label>
-  <input
-    type="text"
-    value={invoiceData.buyerGstin}
-    onChange={(e) => {
-      const value = e.target.value.toUpperCase();
-      setInvoiceData({ ...invoiceData, buyerGstin: value });
-    }}
-    pattern="^GSTIN[0-9]{7}$"
-    placeholder="GSTIN9876543"
-    className={`border rounded p-2 w-full ${
-      invoiceData.buyerGstin
-        ? 'border-red-500' 
-        : ''
-    }`}
-  />
-</div>
-<div>
-  <label className="block text-sm font-medium mb-1">
-    Supplier GSTIN
-    {invoiceData.supplierGstin && !validateGSTIN(invoiceData.supplierGstin) && (
-      <span className="text-red-500 text-xs ml-2">Invalid GSTIN format</span>
-    )}
-  </label>
-  <input
-    type="text"
-    value={invoiceData.supplierGstin}
-    onChange={(e) => {
-      const value = e.target.value.toUpperCase();
-      setInvoiceData({ ...invoiceData, supplierGstin: value });
-    }}
-    pattern="^GSTIN[0-9]{7}$"
-    placeholder="GSTIN9876543"
-    className={`border rounded p-2 w-full ${
-      invoiceData.supplierGstin && !validateGSTIN(invoiceData.supplierGstin) 
-        ? 'border-red-500' 
-        : ''
-    }`}
-  />
-</div>
+              <label className="block text-sm font-medium mb-1">
+                Buyer GSTIN
+                {invoiceData.buyerGstin && (
+                  <span className="text-red-500 text-xs ml-2">
+                    Invalid GSTIN format
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={invoiceData.buyerGstin}
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase();
+                  setInvoiceData({ ...invoiceData, buyerGstin: value });
+                }}
+                pattern="^GSTIN[0-9]{7}$"
+                placeholder="GSTIN9876543"
+                className={`border rounded p-2 w-full ${
+                  invoiceData.buyerGstin ? "border-red-500" : ""
+                }`}
+              />
+            </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Total Amount</label>
+              <label className="block text-sm font-medium mb-1">
+                Supplier GSTIN
+                {invoiceData.supplierGstin &&
+                  !validateGSTIN(invoiceData.supplierGstin) && (
+                    <span className="text-red-500 text-xs ml-2">
+                      Invalid GSTIN format
+                    </span>
+                  )}
+              </label>
+              <input
+                type="text"
+                value={invoiceData.supplierGstin}
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase();
+                  setInvoiceData({ ...invoiceData, supplierGstin: value });
+                }}
+                pattern="^GSTIN[0-9]{7}$"
+                placeholder="GSTIN9876543"
+                className={`border rounded p-2 w-full ${
+                  invoiceData.supplierGstin &&
+                  !validateGSTIN(invoiceData.supplierGstin)
+                    ? "border-red-500"
+                    : ""
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Total Amount
+              </label>
               <input
                 type="text"
                 value={invoiceData.taxAmount.totalAmount}
-                onChange={(e) => setInvoiceData({ ...invoiceData, taxAmount: { ...invoiceData.taxAmount, totalAmount: e.target.value } })}
+                onChange={(e) =>
+                  setInvoiceData({
+                    ...invoiceData,
+                    taxAmount: {
+                      ...invoiceData.taxAmount,
+                      totalAmount: e.target.value,
+                    },
+                  })
+                }
                 className="border rounded p-2 w-full"
               />
             </div>
@@ -403,7 +433,15 @@ export default function InvoiceUpload() {
               <input
                 type="text"
                 value={invoiceData.taxAmount.cgst}
-                onChange={(e) => setInvoiceData({ ...invoiceData, taxAmount: { ...invoiceData.taxAmount, cgst: e.target.value } })}
+                onChange={(e) =>
+                  setInvoiceData({
+                    ...invoiceData,
+                    taxAmount: {
+                      ...invoiceData.taxAmount,
+                      cgst: e.target.value,
+                    },
+                  })
+                }
                 className="border rounded p-2 w-full"
               />
             </div>
@@ -412,7 +450,15 @@ export default function InvoiceUpload() {
               <input
                 type="text"
                 value={invoiceData.taxAmount.sgst}
-                onChange={(e) => setInvoiceData({ ...invoiceData, taxAmount: { ...invoiceData.taxAmount, sgst: e.target.value } })}
+                onChange={(e) =>
+                  setInvoiceData({
+                    ...invoiceData,
+                    taxAmount: {
+                      ...invoiceData.taxAmount,
+                      sgst: e.target.value,
+                    },
+                  })
+                }
                 className="border rounded p-2 w-full"
               />
             </div>
@@ -421,7 +467,15 @@ export default function InvoiceUpload() {
               <input
                 type="text"
                 value={invoiceData.taxAmount.igst}
-                onChange={(e) => setInvoiceData({ ...invoiceData, taxAmount: { ...invoiceData.taxAmount, igst: e.target.value } })}
+                onChange={(e) =>
+                  setInvoiceData({
+                    ...invoiceData,
+                    taxAmount: {
+                      ...invoiceData.taxAmount,
+                      igst: e.target.value,
+                    },
+                  })
+                }
                 className="border rounded p-2 w-full"
               />
             </div>
@@ -435,5 +489,16 @@ export default function InvoiceUpload() {
         </Card>
       )}
     </MainLayout>
+  );
+}
+
+export const Loader = () => {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-4">
+        <LoaderCircleIcon className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-gray-600">Processing your invoice...</p>
+      </div>
+    </div>
   );
 };

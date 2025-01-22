@@ -1,14 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import MainLayout from "@/components/Layout/MainLayout";
 import StatCard from "@/components/Dashboard/StatCard";
 import RecentActivity from "@/components/Dashboard/RecentActivity";
 import CreditUtilization from "@/components/Dashboard/CreditUtilization";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  IndianRupee, 
-  TrendingUp, 
-  AlertTriangle, 
+import {
+  IndianRupee,
+  TrendingUp,
+  AlertTriangle,
   CheckCircle2,
   Upload,
   Brain,
@@ -25,12 +25,41 @@ import {
   Star,
   Workflow,
   MessageSquare,
-  History
+  History,
 } from "lucide-react";
 
-const FeatureCard = ({ title, status, icon: Icon }: { 
-  title: string; 
-  status: "live" | "coming-soon"; 
+// Initial credit data
+const initialCreditData = [
+  {
+    name: "CGST",
+    available: 150000,
+    utilized: 120000,
+    pending: 20000,
+    blocked: 10000,
+  },
+  {
+    name: "SGST",
+    available: 150000,
+    utilized: 100000,
+    pending: 30000,
+    blocked: 20000,
+  },
+  {
+    name: "IGST",
+    available: 200000,
+    utilized: 180000,
+    pending: 15000,
+    blocked: 5000,
+  },
+];
+
+const FeatureCard = ({
+  title,
+  status,
+  icon: Icon,
+}: {
+  title: string;
+  status: "live" | "coming-soon";
   icon: React.ElementType;
 }) => (
   <Card className="p-4 flex items-center justify-between">
@@ -38,24 +67,47 @@ const FeatureCard = ({ title, status, icon: Icon }: {
       <Icon className="w-5 h-5 text-primary" />
       <span className="font-medium">{title}</span>
     </div>
-    <Badge variant={status === "live" ? "default" : "secondary"}>
+    <Badge
+      className="whitespace-nowrap"
+      variant={status === "live" ? "default" : "secondary"}
+    >
       {status === "live" ? "Live" : "Coming Soon"}
     </Badge>
   </Card>
 );
 
-const Index = () => {
-  const features: Array<{
+function Index() {
+  const [creditData, setCreditData] = useState(initialCreditData);
+  const [stats, setStats] = useState({
+    totalITC: creditData.reduce((sum, item) => sum + item.available, 0),
+    utilizedITC: creditData.reduce((sum, item) => sum + item.utilized, 0),
+    pendingClaims: creditData.reduce((sum, item) => sum + item.pending, 0),
+    complianceScore: 95,
+  });
+
+  const features: {
     title: string;
     icon: React.ElementType;
     status: "live" | "coming-soon";
-  }> = [
+  }[] = [
     { title: "Invoice Upload/Integration", icon: Upload, status: "live" },
-    { title: "AI-Driven Invoice Data Extraction", icon: Brain, status: "coming-soon" },
+    {
+      title: "AI-Driven Invoice Data Extraction",
+      icon: Brain,
+      status: "live",
+    },
     { title: "ITC Eligibility Tracker", icon: Calculator, status: "live" },
     { title: "Reconciliation Management", icon: FileCheck, status: "live" },
-    { title: "Supplier Compliance Monitoring", icon: UserCheck, status: "coming-soon" },
-    { title: "Credit Utilization Optimization", icon: PieChart, status: "live" },
+    {
+      title: "Supplier Compliance Monitoring",
+      icon: UserCheck,
+      status: "coming-soon",
+    },
+    {
+      title: "Credit Utilization Optimization",
+      icon: PieChart,
+      status: "live",
+    },
     { title: "Intelligent Alerts", icon: Bell, status: "coming-soon" },
     { title: "Analytics & Reporting", icon: BarChart, status: "live" },
     { title: "Mobile-First Design", icon: Smartphone, status: "live" },
@@ -63,10 +115,29 @@ const Index = () => {
     { title: "Offline Mode", icon: Wifi, status: "coming-soon" },
     { title: "Dark Mode", icon: Moon, status: "coming-soon" },
     { title: "Supplier Compliance Rating", icon: Star, status: "coming-soon" },
-    { title: "Customizable Compliance Workflows", icon: Workflow, status: "coming-soon" },
-    { title: "AI Chatbot for Supplier Compliance", icon: MessageSquare, status: "coming-soon" },
-    { title: "Timeline with Alerts", icon: History, status: "coming-soon" }
+    {
+      title: "Customizable Compliance Workflows",
+      icon: Workflow,
+      status: "coming-soon",
+    },
+    {
+      title: "AI Chatbot for Supplier Compliance",
+      icon: MessageSquare,
+      status: "coming-soon",
+    },
+    { title: "Timeline with Alerts", icon: History, status: "coming-soon" },
   ];
+
+  const handleCreditDataUpdate = (newData: typeof creditData) => {
+    setCreditData(newData);
+    // Update stats based on new credit data
+    setStats({
+      totalITC: newData.reduce((sum, item) => sum + item.available, 0),
+      utilizedITC: newData.reduce((sum, item) => sum + item.utilized, 0),
+      pendingClaims: newData.reduce((sum, item) => sum + item.pending, 0),
+      complianceScore: stats.complianceScore, // Keep the same compliance score
+    });
+  };
 
   return (
     <MainLayout>
@@ -79,25 +150,25 @@ const Index = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total ITC Available"
-            value="₹5,00,000"
+            value={`₹${stats.totalITC.toLocaleString()}`}
             icon={IndianRupee}
             trend={{ value: 12, isPositive: true }}
           />
           <StatCard
             title="ITC Utilized"
-            value="₹4,00,000"
+            value={`₹${stats.utilizedITC.toLocaleString()}`}
             icon={TrendingUp}
             trend={{ value: 8, isPositive: true }}
           />
           <StatCard
             title="Pending Claims"
-            value="₹50,000"
+            value={`₹${stats.pendingClaims.toLocaleString()}`}
             icon={AlertTriangle}
             trend={{ value: 5, isPositive: false }}
           />
           <StatCard
             title="Compliance Score"
-            value="95%"
+            value={`${stats.complianceScore}%`}
             icon={CheckCircle2}
             trend={{ value: 2, isPositive: true }}
           />
@@ -105,7 +176,10 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <CreditUtilization />
+            <CreditUtilization
+              data={creditData}
+              onDataUpdate={handleCreditDataUpdate}
+            />
           </div>
           <div className="w-full">
             <RecentActivity />
@@ -128,6 +202,6 @@ const Index = () => {
       </div>
     </MainLayout>
   );
-};
+}
 
 export default Index;

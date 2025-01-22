@@ -1,8 +1,9 @@
 import React from "react";
-import { Bell, Search, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { Menu, Search, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Notifications } from "../Dashboard/NotificationUpper";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HeaderProps {
   toggleMobileSidebar: () => void;
@@ -14,8 +15,11 @@ const Header = ({ toggleMobileSidebar }: HeaderProps) => {
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
+      console.log(user);
     };
 
     fetchUser();
@@ -37,10 +41,10 @@ const Header = ({ toggleMobileSidebar }: HeaderProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden scale-125"
             onClick={toggleMobileSidebar}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-10 w-10" />
           </Button>
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -52,10 +56,7 @@ const Header = ({ toggleMobileSidebar }: HeaderProps) => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-          </Button>
+          <Notifications />
           {user && (
             <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
               <span className="text-primary-800 font-medium">
@@ -64,7 +65,7 @@ const Header = ({ toggleMobileSidebar }: HeaderProps) => {
             </div>
           )}
           <Button onClick={handleLogout} className="text-white">
-            Logout
+            <LogOut />
           </Button>
         </div>
       </div>
