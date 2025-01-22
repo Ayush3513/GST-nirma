@@ -32,7 +32,12 @@ export default function InvoiceUpload() {
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(invoiceSchema),
   });
 
@@ -136,85 +141,102 @@ export default function InvoiceUpload() {
   };
 
   // Function to retrieve the prediction data using job ID
- const fetchPredictionData = async (jobId: string) => {
-   const maxRetries = 5;
-   let retryCount = 0;
+  const fetchPredictionData = async (jobId: string) => {
+    const maxRetries = 5;
+    let retryCount = 0;
 
-   const fetchWithRetry = async () => {
-     try {
-       const response = await fetch(
-         `https://api.mindee.net/v1/products/nirma/invoicy/v1/documents/queue/${jobId}`,
-         {
-           method: "GET",
-           headers: {
-             Authorization: "Token 7d0ed7d071f75355b9d289e1b9969cdd", // Replace with your actual API key
-           },
-         }
-       );
+    const fetchWithRetry = async () => {
+      try {
+        const response = await fetch(
+          `https://api.mindee.net/v1/products/nirma/invoicy/v1/documents/queue/${jobId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: "Token 7d0ed7d071f75355b9d289e1b9969cdd", // Replace with your actual API key
+            },
+          }
+        );
 
-       if (!response.ok) {
-         if (response.status === 429 && retryCount < maxRetries) {
-           // Apply backoff if rate limit is exceeded
-           retryCount++;
-           const backoffTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
-           console.log(`Rate limit hit. Retrying in ${backoffTime / 1000}s...`);
-           setTimeout(fetchWithRetry, backoffTime);
-           return;
-         }
-         throw new Error(`HTTP error! Status: ${response.status}`);
-       }
+        if (!response.ok) {
+          if (response.status === 429 && retryCount < maxRetries) {
+            // Apply backoff if rate limit is exceeded
+            retryCount++;
+            const backoffTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.log(
+              `Rate limit hit. Retrying in ${backoffTime / 1000}s...`
+            );
+            setTimeout(fetchWithRetry, backoffTime);
+            return;
+          }
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
 
-       const data = await response.json();
-       console.log("Prediction Data:", data);
+        const data = await response.json();
+        console.log("Prediction Data:", data);
 
-       const importantData = data.document.inference.prediction;
+        const importantData = data.document.inference.prediction;
 
-       if (importantData) {
-         setInvoiceData({
-           invoiceNumber: importantData.invoicenumber?.value || "",
-           invoiceDate: importantData.invoice_date?.value || "",
-           buyerGstin: importantData.buyergstin?.value || "",
-           supplierGstin: importantData.suppliergstin?.value || "",
-           taxAmount: {
-             cgst: parseFloat(importantData.taxamount?.cgst) || 0,
-             sgst: parseFloat(importantData.taxamount?.sgst) || 0,
-             igst: parseFloat(importantData.taxamount?.igst) || 0,
-             totalAmount: parseFloat(importantData.taxamount?.total_amount) || 0,
-           },
-         });
+        if (importantData) {
+          setInvoiceData({
+            invoiceNumber: importantData.invoicenumber?.value || "",
+            invoiceDate: importantData.invoice_date?.value || "",
+            buyerGstin: importantData.buyergstin?.value || "",
+            supplierGstin: importantData.suppliergstin?.value || "",
+            taxAmount: {
+              cgst: parseFloat(importantData.taxamount?.cgst) || 0,
+              sgst: parseFloat(importantData.taxamount?.sgst) || 0,
+              igst: parseFloat(importantData.taxamount?.igst) || 0,
+              totalAmount:
+                parseFloat(importantData.taxamount?.total_amount) || 0,
+            },
+          });
 
-         // Set form values
-         setValue("invoiceNumber", importantData.invoicenumber?.value || "");
-         setValue("invoiceDate", importantData.invoice_date?.value || "");
-         setValue("buyerGstin", importantData.buyergstin?.value || "");
-         setValue("supplierGstin", importantData.suppliergstin?.value || "");
-         setValue("taxAmount.cgst", parseFloat(importantData.taxamount?.cgst) || 0);
-         setValue("taxAmount.sgst", parseFloat(importantData.taxamount?.sgst) || 0);
-         setValue("taxAmount.igst", parseFloat(importantData.taxamount?.igst) || 0);
-         setValue("taxAmount.totalAmount", parseFloat(importantData.taxamount?.total_amount) || 0);
+          // Set form values
+          setValue("invoiceNumber", importantData.invoicenumber?.value || "");
+          setValue("invoiceDate", importantData.invoice_date?.value || "");
+          setValue("buyerGstin", importantData.buyergstin?.value || "");
+          setValue("supplierGstin", importantData.suppliergstin?.value || "");
+          setValue(
+            "taxAmount.cgst",
+            parseFloat(importantData.taxamount?.cgst) || 0
+          );
+          setValue(
+            "taxAmount.sgst",
+            parseFloat(importantData.taxamount?.sgst) || 0
+          );
+          setValue(
+            "taxAmount.igst",
+            parseFloat(importantData.taxamount?.igst) || 0
+          );
+          setValue(
+            "taxAmount.totalAmount",
+            parseFloat(importantData.taxamount?.total_amount) || 0
+          );
 
-         toast({
-           title: "Invoice processed successfully",
-           description: `Extracted data for invoice: ${
-             importantData.invoicenumber?.value || "Unknown"
-           }`,
-         });
-       } else {
-         console.log("Prediction data is still empty or incomplete.");
-       }
-     } catch (error) {
-       console.error("Error fetching prediction data:", error);
-       toast({
-         title: "Error fetching prediction",
-         description:
-           error instanceof Error ? error.message : "Please try again later.",
-         variant: "destructive",
-       });
-     }
-   };
+          setIsUploading(false);
+          
+          toast({
+            title: "Invoice processed successfully",
+            description: `Extracted data for invoice: ${
+              importantData.invoicenumber?.value || "Unknown"
+            }`,
+          });
+        } else {
+          console.log("Prediction data is still empty or incomplete.");
+        }
+      } catch (error) {
+        console.error("Error fetching prediction data:", error);
+        toast({
+          title: "Error fetching prediction",
+          description:
+            error instanceof Error ? error.message : "Please try again later.",
+          variant: "destructive",
+        });
+      }
+    };
 
-   fetchWithRetry();
- };
+    fetchWithRetry();
+  };
 
   // Handle file drop
   const handleDrop = useCallback(
@@ -253,16 +275,16 @@ export default function InvoiceUpload() {
             sgst: data.taxAmount.sgst || 0,
             igst: data.taxAmount.igst || 0,
             total_amount: data.taxAmount.totalAmount || 0,
-            reconciliation_status: 'PENDING',
-            itc_eligible: false
-          }
+            reconciliation_status: "PENDING",
+            itc_eligible: false,
+          },
         ])
         .select()
         .single();
-  
+
       if (insertError) throw insertError;
-      if (!savedInvoice) throw new Error('Failed to save invoice');
-  
+      if (!savedInvoice) throw new Error("Failed to save invoice");
+
       toast({
         title: "Invoice saved successfully",
         description: "Now checking eligibility and reconciliation...",
@@ -282,9 +304,9 @@ export default function InvoiceUpload() {
         description:
           `Status: ${eligibilityResult.verificationStatus}\n` +
           `Reconciliation: ${reconciliationStatus}\n` +
-          `ITC Eligible: ${eligibilityResult.isEligible ? 'Yes' : 'No'}\n` +
+          `ITC Eligible: ${eligibilityResult.isEligible ? "Yes" : "No"}\n` +
           `Amount: ₹${eligibilityResult.eligibleAmount}\n` +
-          `Reason: ${eligibilityResult.reason || 'N/A'}`,
+          `Reason: ${eligibilityResult.reason || "N/A"}`,
         variant: eligibilityResult.isEligible ? "default" : "destructive",
       });
       queryClient.invalidateQueries(["invoices"]);
@@ -353,49 +375,79 @@ export default function InvoiceUpload() {
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Invoice Number</label>
+                <label className="block text-sm font-medium mb-1">
+                  Invoice Number
+                </label>
                 <input
                   type="text"
                   {...register("invoiceNumber")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.invoiceNumber && <p className="text-red-500 text-xs">{errors.invoiceNumber.message}</p>}
+                {errors.invoiceNumber && (
+                  <p className="text-red-500 text-xs">
+                    {errors.invoiceNumber.message}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Invoice Date</label>
+                <label className="block text-sm font-medium mb-1">
+                  Invoice Date
+                </label>
                 <input
                   type="date"
                   {...register("invoiceDate")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.invoiceDate && <p className="text-red-500 text-xs">{errors.invoiceDate.message}</p>}
+                {errors.invoiceDate && (
+                  <p className="text-red-500 text-xs">
+                    {errors.invoiceDate.message}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Buyer GSTIN</label>
+                <label className="block text-sm font-medium mb-1">
+                  Buyer GSTIN
+                </label>
                 <input
                   type="text"
                   {...register("buyerGstin")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.buyerGstin && <p className="text-red-500 text-xs">{errors.buyerGstin.message}</p>}
+                {errors.buyerGstin && (
+                  <p className="text-red-500 text-xs">
+                    {errors.buyerGstin.message}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Supplier GSTIN</label>
+                <label className="block text-sm font-medium mb-1">
+                  Supplier GSTIN
+                </label>
                 <input
                   type="text"
                   {...register("supplierGstin")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.supplierGstin && <p className="text-red-500 text-xs">{errors.supplierGstin.message}</p>}
+                {errors.supplierGstin && (
+                  <p className="text-red-500 text-xs">
+                    {errors.supplierGstin.message}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Total Amount</label>
+                <label className="block text-sm font-medium mb-1">
+                  Total Amount
+                </label>
                 <input
                   type="number"
                   {...register("taxAmount.totalAmount")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.taxAmount?.totalAmount && <p className="text-red-500 text-xs">{errors.taxAmount.totalAmount.message}</p>}
+                {errors.taxAmount?.totalAmount && (
+                  <p className="text-red-500 text-xs">
+                    {errors.taxAmount.totalAmount.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">CGST</label>
@@ -404,7 +456,11 @@ export default function InvoiceUpload() {
                   {...register("taxAmount.cgst")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.taxAmount?.cgst && <p className="text-red-500 text-xs">{errors.taxAmount.cgst.message}</p>}
+                {errors.taxAmount?.cgst && (
+                  <p className="text-red-500 text-xs">
+                    {errors.taxAmount.cgst.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">SGST</label>
@@ -413,7 +469,11 @@ export default function InvoiceUpload() {
                   {...register("taxAmount.sgst")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.taxAmount?.sgst && <p className="text-red-500 text-xs">{errors.taxAmount.sgst.message}</p>}
+                {errors.taxAmount?.sgst && (
+                  <p className="text-red-500 text-xs">
+                    {errors.taxAmount.sgst.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">IGST</label>
@@ -422,7 +482,11 @@ export default function InvoiceUpload() {
                   {...register("taxAmount.igst")}
                   className="border rounded p-2 w-full"
                 />
-                {errors.taxAmount?.igst && <p className="text-red-500 text-xs">{errors.taxAmount.igst.message}</p>}
+                {errors.taxAmount?.igst && (
+                  <p className="text-red-500 text-xs">
+                    {errors.taxAmount.igst.message}
+                  </p>
+                )}
               </div>
             </div>
             <button
