@@ -1,40 +1,89 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/Layout/MainLayout";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { createClient } from '@supabase/supabase-js';
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { Cross, DownloadIcon, ShieldCloseIcon } from "lucide-react";
 
-interface ITCEntry {
-  invoiceNumber: string;
-  supplierGSTIN: string;
-  amount: string;
-  date: string;
+interface Invoice {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  buyer_gstin: string;
+  supplier_gstin: string;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  total_amount: number;
+  reconciliation_status: string;
+  itc_eligible: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const ITCEligibility = () => {
-  const [entries, setEntries] = useState<ITCEntry[]>([]);
-  const [currentEntry, setCurrentEntry] = useState<ITCEntry>({
-    invoiceNumber: "",
-    supplierGSTIN: "",
-    amount: "",
-    date: "",
-  });
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [sortAsc, setSortAsc] = useState(true);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setEntries([...entries, currentEntry]);
-    setCurrentEntry({
-      invoiceNumber: "",
-      supplierGSTIN: "",
-      amount: "",
-      date: "",
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*');
+
+      if (error) {
+        setInvoices([]);
+        toast({
+          title: "Error",
+          description: "Failed to fetch invoices. Please try again later.",
+        });
+      } else {
+        setInvoices(data);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  const handleInvoiceClick = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setDialogOpen(true);
+  };
+
+  const handleDownload = () => {
+    if (selectedInvoice) {
+      const element = document.createElement("a");
+      const file = new Blob([JSON.stringify(selectedInvoice, null, 2)], {
+        type: "application/json",
+      });
+      element.href = URL.createObjectURL(file);
+      element.download = `${selectedInvoice.invoice_number}_details.json`;
+      document.body.appendChild(element);
+      element.click();
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleSort = () => {
+    const sortedInvoices = [...invoices].sort((a, b) => {
+      if (sortAsc) {
+        return a.itc_eligible === b.itc_eligible ? 0 : a.itc_eligible ? -1 : 1;
+      } else {
+        return a.itc_eligible === b.itc_eligible ? 0 : a.itc_eligible ? 1 : -1;
+      }
     });
-    toast({
-      title: "ITC Entry Added",
-      description: "Your ITC entry has been successfully added.",
-    });
+    setInvoices(sortedInvoices);
+    setSortAsc(!sortAsc);
   };
 
   return (
@@ -48,83 +97,88 @@ const ITCEligibility = () => {
         </div>
 
         <Card className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Invoice Number</label>
-                <Input
-                  value={currentEntry.invoiceNumber}
-                  onChange={(e) =>
-                    setCurrentEntry({ ...currentEntry, invoiceNumber: e.target.value })
-                  }
-                  placeholder="Enter invoice number"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Supplier GSTIN</label>
-                <Input
-                  value={currentEntry.supplierGSTIN}
-                  onChange={(e) =>
-                    setCurrentEntry({ ...currentEntry, supplierGSTIN: e.target.value })
-                  }
-                  placeholder="Enter supplier GSTIN"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Amount</label>
-                <Input
-                  type="number"
-                  value={currentEntry.amount}
-                  onChange={(e) =>
-                    setCurrentEntry({ ...currentEntry, amount: e.target.value })
-                  }
-                  placeholder="Enter amount"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date</label>
-                <Input
-                  type="date"
-                  value={currentEntry.date}
-                  onChange={(e) =>
-                    setCurrentEntry({ ...currentEntry, date: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit">Add Entry</Button>
-          </form>
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Recent Entries</h2>
+          <h2 className="text-lg font-semibold mb-4">Invoices</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-2">Invoice Number</th>
                   <th className="text-left p-2">Supplier GSTIN</th>
-                  <th className="text-left p-2">Amount</th>
+                  <th className="text-left p-2">Total Amount</th>
                   <th className="text-left p-2">Date</th>
+                  <th className="text-left p-2">
+                    ITC Eligible
+                    <Button onClick={handleSort} className="ml-2">
+                      {sortAsc ? "↑" : "↓"}
+                    </Button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="p-2">{entry.invoiceNumber}</td>
-                    <td className="p-2">{entry.supplierGSTIN}</td>
-                    <td className="p-2">₹{entry.amount}</td>
-                    <td className="p-2">{entry.date}</td>
+                {invoices.map((invoice, index) => (
+                  <tr key={index} className="border-b cursor-pointer" onClick={() => handleInvoiceClick(invoice)}>
+                    <td className="p-2">{invoice.invoice_number}</td>
+                    <td className="p-2">{invoice.supplier_gstin}</td>
+                    <td className="p-2">₹{invoice.total_amount}</td>
+                    <td className="p-2">{invoice.invoice_date}</td>
+                    <td className="p-2 w-full flex justify-start">
+                      <p
+                        className={`${invoice.itc_eligible
+                            ? 'bg-green-400 rounded-full text-center w-10'
+                            : 'bg-red-400 rounded-full text-center w-10'
+                          }`}
+                      >
+                        {invoice.itc_eligible ? "Yes" : "No"}
+                      </p>
+                    </td>
+
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </Card>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <div />
+          </DialogTrigger>
+          <DialogContent>
+            <DialogTitle>
+              Invoice Details
+
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInvoice && (
+                <div className="space-y-4">
+                  <div>
+                    <strong>Invoice Number:</strong> {selectedInvoice.invoice_number}
+                  </div>
+                  <div>
+                    <strong>Supplier GSTIN:</strong> {selectedInvoice.supplier_gstin}
+                  </div>
+                  <div>
+                    <strong>Total Amount:</strong> ₹{selectedInvoice.total_amount}
+                  </div>
+                  <div>
+                    <strong>Date:</strong> {selectedInvoice.invoice_date}
+                  </div>
+                  <div>
+                    <strong>Reconciliation Status:</strong> {selectedInvoice.reconciliation_status}
+                  </div>
+                  <div>
+                    <strong>ITC Eligible:</strong> {selectedInvoice.itc_eligible ? "Yes" : "No"}
+                  </div>
+                </div>
+              )}
+            </DialogDescription>
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleDownload} startIcon={<DownloadIcon />}>
+                Download Details
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

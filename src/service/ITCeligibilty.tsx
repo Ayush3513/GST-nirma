@@ -14,6 +14,25 @@ export const checkITCEligibility = async (invoice: Invoice) => {
   }
 
   try {
+    const { data: existingInvoice, error: existingInvoiceError } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('invoice_number', invoice.invoice_number)
+      .maybeSingle();
+
+    if (existingInvoiceError) throw new Error('Error checking existing invoice');
+
+    // Allow invoices with the same number but different supplier GSTINs
+    if (existingInvoice && existingInvoice.supplier_gstin === invoice.supplier_gstin) {
+      throw new Error('Invoice with the same number and supplier GSTIN already exists');
+    }
+
+    const { data: newInvoice, error: newInvoiceError } = await supabase
+      .from('invoices')
+      .insert([invoice]);
+
+    if (newInvoiceError) throw new Error('Error adding new invoice');
+
     const { data: gstr2b, error: gstr2bError } = await supabase
       .from('gstr_2b')
       .select('*')
