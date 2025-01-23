@@ -13,6 +13,7 @@ import Analytics from "./pages/Analytics";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import InvoiceUpload from "./pages/InvoiceUpload";
+import CreditUtilization from "./pages/credit-uitilization";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Reconciliation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/credit-utilization"
+            element={
+              <ProtectedRoute>
+                <CreditUtilization />
               </ProtectedRoute>
             }
           />

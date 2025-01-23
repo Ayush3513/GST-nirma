@@ -8,6 +8,7 @@ import {
   Bell,
   Settings,
   Upload,
+  DollarSign,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ const Sidebar = ({ isMobile = false }: SidebarProps) => {
     { icon: Upload, label: "Invoice Upload", path: "/invoice-upload" },
     { icon: CreditCard, label: "ITC Eligibility", path: "/itc-eligibility" },
     { icon: FileCheck, label: "Reconciliation", path: "/reconciliation" },
+    { icon: DollarSign, label: "Credit Utilization", path: "/credit-utilization" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ];

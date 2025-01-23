@@ -1,6 +1,6 @@
 import { LoaderCircleIcon, Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import MainLayout from "@/components/Layout/MainLayout";
@@ -12,6 +12,7 @@ import { reconcileInvoice } from "@/service/reconcile";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { v4 as uuid } from "uuid";
 
 const invoiceSchema = z.object({
   invoiceNumber: z.string().nonempty("Invoice number is required"),
@@ -30,8 +31,26 @@ export default function InvoiceUpload() {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  useEffect(() => {
+    async function getCurrentUser() {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUser(user);
+      }
+    
+      if (error) {
+        console.error('Error fetching user:', error);
+        return null;
+      }
+    
+    }
+  }, []);
   const {
     register,
     handleSubmit,
@@ -266,7 +285,7 @@ export default function InvoiceUpload() {
         .from("invoices")
         .insert([
           {
-            id: crypto.randomUUID(),
+            id: uuid(),
             invoice_number: data.invoiceNumber,
             invoice_date: data.invoiceDate,
             buyer_gstin: data.buyerGstin.toUpperCase(),
