@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Notifications } from "../Dashboard/NotificationUpper";
+import { Notifications } from "./Dashboard/NotificationUpper";
 import { supabase } from "@/integrations/supabase/client";
 
 interface HeaderProps {

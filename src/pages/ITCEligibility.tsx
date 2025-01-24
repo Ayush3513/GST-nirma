@@ -112,6 +112,9 @@ const ITCEligibility = () => {
                       {sortAsc ? "↑" : "↓"}
                     </Button>
                   </th>
+                  <th className="text-left p-2">
+                    Reconsiliation Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -129,6 +132,17 @@ const ITCEligibility = () => {
                           }`}
                       >
                         {invoice.itc_eligible ? "Yes" : "No"}
+                      </p>
+                    </td>
+                    
+                    <td className="p-2 w-">
+                      <p
+                        className={`${invoice.reconciliation_status === 'MATCHED'
+                            ? 'bg-green-400 rounded-full text-center w-20'
+                            : 'bg-red-400 rounded-full text-center w-20'
+                          }`}
+                      >
+                        {invoice.reconciliation_status }
                       </p>
                     </td>
 

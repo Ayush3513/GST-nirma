@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/Layout/MainLayout";
-import StatCard from "@/components/Dashboard/StatCard";
-import RecentActivity from "@/components/Dashboard/RecentActivity";
-import CreditUtilization from "@/components/Dashboard/CreditUtilization";
+import StatCard from "@/components/Layout/Dashboard/StatCard";
+import RecentActivity from "@/components/Layout/Dashboard/RecentActivity";
+import CreditUtilization from "@/components/Layout/Dashboard/CreditUtilization";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,31 +27,7 @@ import {
   MessageSquare,
   History,
 } from "lucide-react";
-
-// Initial credit data
-const initialCreditData = [
-  {
-    name: "CGST",
-    available: 150000,
-    utilized: 120000,
-    pending: 20000,
-    blocked: 10000,
-  },
-  {
-    name: "SGST",
-    available: 150000,
-    utilized: 100000,
-    pending: 30000,
-    blocked: 20000,
-  },
-  {
-    name: "IGST",
-    available: 200000,
-    utilized: 180000,
-    pending: 15000,
-    blocked: 5000,
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const FeatureCard = ({
   title,
@@ -77,13 +53,61 @@ const FeatureCard = ({
 );
 
 function Index() {
-  const [creditData, setCreditData] = useState(initialCreditData);
+  const [creditData, setCreditData] = useState([]);
   const [stats, setStats] = useState({
-    totalITC: creditData.reduce((sum, item) => sum + item.available, 0),
-    utilizedITC: creditData.reduce((sum, item) => sum + item.utilized, 0),
-    pendingClaims: creditData.reduce((sum, item) => sum + item.pending, 0),
+    totalITC: 0,
+    utilizedITC: 0,
+    pendingClaims: 0,
     complianceScore: 95,
   });
+
+  useEffect(() => {
+    // Fetch data from Supabase
+    const fetchData = async () => {
+      const { data, error } = await supabase
+        .from('credit_utilization')
+        .select('cgst, sgst, igst');
+
+      if (error) {
+        console.error("Error fetching credit data:", error);
+      } else if (Array.isArray(data)) {
+        const formattedData = [
+          {
+            name: "CGST",
+            available: data.reduce((sum, item) => sum + item.cgst, 0),
+            utilized: 0, // Assuming utilized data is not available in the schema
+            pending: 0, // Assuming pending data is not available in the schema
+            blocked: 0, // Assuming blocked data is not available in the schema
+          },
+          {
+            name: "SGST",
+            available: data.reduce((sum, item) => sum + item.sgst, 0),
+            utilized: 0, // Assuming utilized data is not available in the schema
+            pending: 0, // Assuming pending data is not available in the schema
+            blocked: 0, // Assuming blocked data is not available in the schema
+          },
+          {
+            name: "IGST",
+            available: data.reduce((sum, item) => sum + item.igst, 0),
+            utilized: 0, // Assuming utilized data is not available in the schema
+            pending: 0, // Assuming pending data is not available in the schema
+            blocked: 0, // Assuming blocked data is not available in the schema
+          },
+        ];
+        setCreditData(formattedData);
+        setStats({
+          totalITC: formattedData.reduce((sum, item) => sum + item.available, 0),
+          utilizedITC: 0, // Assuming utilized data is not available in the schema
+          pendingClaims: 0, // Assuming pending data is not available in the schema
+          complianceScore: 95, // Keep the same compliance score
+        });
+      } else {
+        console.error("Fetched data is not an array:", data);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const features: {
     title: string;

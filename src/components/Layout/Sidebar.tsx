@@ -22,7 +22,7 @@ const Sidebar = ({ isMobile = false }: SidebarProps) => {
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },
     { icon: Upload, label: "Invoice Upload", path: "/invoice-upload" },
     { icon: CreditCard, label: "ITC Eligibility", path: "/itc-eligibility" },
-    { icon: FileCheck, label: "Reconciliation", path: "/reconciliation" },
+    { icon: FileCheck, label: "compliance", path: "/reconciliation" },
     { icon: DollarSign, label: "Credit Utilization", path: "/credit-utilization" },
     { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Settings, label: "Settings", path: "/settings" },
